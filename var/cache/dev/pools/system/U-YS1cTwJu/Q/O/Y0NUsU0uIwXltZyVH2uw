@@ -1,0 +1,3 @@
+<?php //38d953bcb863e24c925aa7f3d586ffbf
+
+return [PHP_INT_MAX, 'bundles/apiplatform/webby.png'];

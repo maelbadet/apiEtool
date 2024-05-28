@@ -1,0 +1,3 @@
+<?php //b179762fdad9f37444ad1a85592be80c
+
+return [PHP_INT_MAX, 'bundles/apiplatform/fonts/open-sans/files/open-sans-latin-400-normal.woff2'];

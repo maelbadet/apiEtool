@@ -1,0 +1,3 @@
+<?php //5274c02d2b329bf84e9e295973aedc25
+
+return [PHP_INT_MAX, 'bundles/apiplatform/web.png'];
