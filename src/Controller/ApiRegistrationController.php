@@ -1,59 +1,69 @@
 <?php
-// src/Controller/ApiRegistrationController.php
 
 namespace App\Controller;
 
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\Routing\Annotation\Route;
 
 class ApiRegistrationController extends AbstractController
 {
-	#[Route('/api/register', name: 'api_register', methods: ['POST'])]
-	public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager, ValidatorInterface $validator): JsonResponse
-	{
-		// var_dump($_POST);
-		// die;
-		$data = json_decode($request->getContent(), true);
+    private $logger;
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
 
-		if (!$data) {
-			return new JsonResponse(['message' => 'Invalid JSON'], 400);
-		}
+    #[Route('/api/register', name: 'api_register', methods: ['POST'])]
+    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager, ValidatorInterface $validator): JsonResponse
+    {
+        $this->logger->info('Received registration request');
 
-		$user = new User();
-		$user->setEmail($data['email'] ?? null);
-		$user->setPassword($data['plainPassword'] ?? null);
+        $data = json_decode($request->getContent(), true);
 
-		$errors = $validator->validate($user);
-		if (count($errors) > 0) {
-			$errorsString = (string) $errors;
+        if (!$data) {
+            $this->logger->error('Invalid JSON');
+            return new JsonResponse(['message' => 'Invalid JSON'], 400);
+        }
 
-			return new JsonResponse(['message' => $errorsString], 400);
-		}
+        $user = new User();
+        $user->setEmail($data['email']);
+        $user->setFirstName($data['firstName'] ?? null);
+        $user->setLastName($data['lastName'] ?? null);
 
-		$user->setPassword(
-			$userPasswordHasher->hashPassword(
-				$user,
-				$data['plainPassword']
-			)
-		);
+        $errors = $validator->validate($user);
+        if (count($errors) > 0) {
+            $errorsString = (string) $errors;
+            $this->logger->error('Validation errors: ' . $errorsString);
+            return new JsonResponse(['message' => $errorsString], 400);
+        }
 
-		$user->setRoles(['ROLE_USER']);
-		$entityManager->persist($user);
-		$entityManager->flush();
+        $user->setPassword(
+            $userPasswordHasher->hashPassword(
+                $user,
+                $data['plainPassword']
+            )
+        );
 
-		$response = new JsonResponse(['message' => 'User created'], 201);
+        $user->setRoles(['ROLE_USER']);
+        $entityManager->persist($user);
+        $this->logger->info('User persisted');
+        $entityManager->flush();
+        $this->logger->info('User flushed to database');
 
-		// Ajoutez les en-têtes CORS
-		$response->headers->set('Access-Control-Allow-Origin', '*');
-		$response->headers->set('Access-Control-Allow-Methods', 'POST');
+        $response = new JsonResponse(['message' => 'User created'], 201);
 
-		// Retournez la réponse
-		return $response;
-	}
+        $response->headers->set('Access-Control-Allow-Origin', '*');
+        $response->headers->set('Access-Control-Allow-Methods', 'POST');
+
+        return $response;
+    }
 }
+
+
